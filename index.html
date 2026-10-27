@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>600KB</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --bs-primary: #6f42c1;      /* lilla */
+      --bs-primary-rgb: 111, 66, 193;
+      --lilla-mork: #4b2e83;
+      --lilla-lys: #a78bfa;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+      min-height: 100vh;
+    }
+
+    .navbar {
+      background-color: var(--lilla-mork) !important;
+    }
+
+    .btn-primary {
+      background-color: var(--bs-primary);
+      border-color: var(--bs-primary);
+    }
+    .btn-primary:hover {
+      background-color: var(--lilla-mork);
+      border-color: var(--lilla-mork);
+    }
+
+    .card {
+      border: none;
+      border-radius: 1rem;
+      box-shadow: 0 10px 30px rgba(111, 66, 193, 0.15);
+    }
+
+    .card-header {
+      background-color: var(--bs-primary);
+      color: #fff;
+      border-radius: 1rem 1rem 0 0 !important;
+      font-weight: 600;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--lilla-lys);
+      border-radius: 1rem;
+      padding: 3rem 1rem;
+      text-align: center;
+      background: #faf5ff;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: var(--bs-primary);
+      background: #f3e8ff;
+      transform: scale(1.01);
+    }
+
+    .preview-img {
+      max-width: 100%;
+      max-height: 260px;
+      border-radius: 0.75rem;
+      object-fit: contain;
+    }
+
+    .size-badge {
+      font-size: 0.9rem;
+    }
+
+    footer {
+      color: var(--lilla-mork);
+    }
+
+    .progress {
+      height: 8px;
+    }
+    .progress-bar {
+      background-color: var(--bs-primary);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-dark mb-4">
+    <div class="container">
+      <span class="navbar-brand mb-0 h1">
+        <i class="bi bi-image-fill me-2"></i>Lilla Kompressor
+      </span>
+      <span class="text-white-50 small">Maks 600 KB</span>
+    </div>
+  </nav>
+
+  <main class="container pb-5">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+
+        <div class="card">
+          <div class="card-header">
+            <i class="bi bi-cloud-arrow-up me-2"></i>Last opp bilde for komprimering
+          </div>
+          <div class="card-body p-4">
+
+            <!-- Drop zone -->
+            <div id="dropZone" class="drop-zone mb-3">
+              <i class="bi bi-images display-4 text-primary d-block mb-2"></i>
+              <p class="mb-1 fw-semibold">Dra og slipp bildet her</p>
+              <p class="text-muted small mb-0">eller klikk for å velge fil (JPG, PNG, JPEG, WEBP)</p>
+              <input type="file" id="fileInput" accept="image/*" class="d-none">
+            </div>
+
+            <!-- Preview -->
+            <div id="previewArea" class="d-none">
+              <div class="row g-3 align-items-center">
+                <div class="col-md-6 text-center">
+                  <img id="previewImg" class="preview-img" alt="Forhåndsvisning">
+                </div>
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>Fil:</strong> <span id="fileName"></span></p>
+                  <p class="mb-1"><strong>Original:</strong>
+                    <span class="badge bg-secondary size-badge" id="originalSize"></span>
+                  </p>
+                  <p class="mb-1"><strong>Komprimert:</strong>
+                    <span class="badge bg-primary size-badge" id="compressedSize">–</span>
+                  </p>
+                  <p class="mb-3"><strong>Reduksjon:</strong>
+                    <span class="badge bg-success size-badge" id="reduction">–</span>
+                  </p>
+
+                  <div class="progress mb-3 d-none" id="progressWrap">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                         id="progressBar" style="width: 0%"></div>
+                  </div>
+
+                  <button id="compressBtn" class="btn btn-primary w-100 mb-2">
+                    <i class="bi bi-magic me-1"></i>Komprimer til maks 600 KB
+                  </button>
+                  <button id="downloadBtn" class="btn btn-success w-100 d-none">
+                    <i class="bi bi-download me-1"></i>Last ned komprimert bilde
+                  </button>
+                  <button id="resetBtn" class="btn btn-outline-secondary w-100 mt-2">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Nullstill
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <p class="text-center text-muted small mt-3">
+          <i class="bi bi-shield-lock me-1"></i>
+          Alt skjer lokalt i nettleseren din – ingen bilder lastes opp til server.
+        </p>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="text-center pb-4 small">
+    Bootstrap 5 · Lilla tema · Komprimering i nettleseren
+  </footer>
+
+  <script>
+  (function () {
+    const MAX_BYTES = 600 * 1024; // 600 KB
+
+    const dropZone     = document.getElementById('dropZone');
+    const fileInput    = document.getElementById('fileInput');
+    const previewArea  = document.getElementById('previewArea');
+    const previewImg   = document.getElementById('previewImg');
+    const fileNameEl   = document.getElementById('fileName');
+    const originalSize = document.getElementById('originalSize');
+    const compressedEl = document.getElementById('compressedSize');
+    const reductionEl  = document.getElementById('reduction');
+    const compressBtn  = document.getElementById('compressBtn');
+    const downloadBtn  = document.getElementById('downloadBtn');
+    const resetBtn     = document.getElementById('resetBtn');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressBar  = document.getElementById('progressBar');
+
+    let originalFile = null;
+    let compressedBlob = null;
+    let compressedName = '';
+
+    // ---------- Hjelpefunksjoner ----------
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Kunne ikke lese bildet')); };
+        img.src = url;
+      });
+    }
+
+    // Komprimer via canvas – reduser kvalitet og evt. dimensjoner til under MAX_BYTES
+    async function compressImage(file, maxBytes) {
+      const img = await loadImage(file);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      let width = img.width;
+      let height = img.height;
+      let quality = 0.9;
+
+      // Start med original størrelse, reduser kvalitet først, deretter dimensjoner
+      for (let attempt = 0; attempt < 12; attempt++) {
+        canvas.width = width;
+        canvas.height = height;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const blob = await new Promise(res =>
+          canvas.toBlob(res, 'image/jpeg', quality)
+        );
+
+        if (!blob) throw new Error('Komprimering feilet');
+
+        if (blob.size <= maxBytes) {
+          return blob;
+        }
+
+        // Strategi: senk kvalitet først, deretter skaler ned
+        if (quality > 0.5) {
+          quality -= 0.1;
+        } else {
+          width  = Math.round(width  * 0.85);
+          height = Math.round(height * 0.85);
+          quality = 0.7;
+        }
+
+        if (width < 200 || height < 200) {
+          // Gi opp – returner siste blob selv om den er over grensen
+          return blob;
+        }
+      }
+      // Fallback
+      return await new Promise(res =>
+        canvas.toBlob(res, 'image/jpeg', 0.5)
+      );
+    }
+
+    // ---------- UI-håndtering ----------
+    function showFile(file) {
+      originalFile = file;
+      compressedBlob = null;
+      compressedName = '';
+      downloadBtn.classList.add('d-none');
+      compressedEl.textContent = '–';
+      reductionEl.textContent = '–';
+      progressWrap.classList.add('d-none');
+
+      fileNameEl.textContent = file.name;
+      originalSize.textContent = formatBytes(file.size);
+
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      previewArea.classList.remove('d-none');
+
+      // Hvis allerede under 600KB – informer, men la bruker komprimere likevel
+      if (file.size <= MAX_BYTES) {
+        compressedEl.textContent = 'Allerede under 600 KB';
+        compressedEl.className = 'badge bg-info size-badge';
+      } else {
+        compressedEl.className = 'badge bg-primary size-badge';
+      }
+    }
+
+    function resetAll() {
+      originalFile = null;
+      compressedBlob = null;
+      compressedName = '';
+      fileInput.value = '';
+      previewArea.classList.add('d-none');
+      downloadBtn.classList.add('d-none');
+      progressWrap.classList.add('d-none');
+      progressBar.style.width = '0%';
+      compressedEl.textContent = '–';
+      compressedEl.className = 'badge bg-primary size-badge';
+      reductionEl.textContent = '–';
+    }
+
+    // ---------- Drag & drop ----------
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        const f = e.dataTransfer.files[0];
+        if (f.type.startsWith('image/')) showFile(f);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) showFile(e.target.files[0]);
+    });
+
+    // ---------- Komprimer ----------
+    compressBtn.addEventListener('click', async () => {
+      if (!originalFile) return;
+
+      compressBtn.disabled = true;
+      progressWrap.classList.remove('d-none');
+      progressBar.style.width = '30%';
+
+      try {
+        // Simuler litt progresstid for bedre UX
+        await new Promise(r => setTimeout(r, 120));
+        progressBar.style.width = '60%';
+
+        const blob = await compressImage(originalFile, MAX_BYTES);
+
+        progressBar.style.width = '100%';
+        await new Promise(r => setTimeout(r, 150));
+        progressWrap.classList.add('d-none');
+
+        compressedBlob = blob;
+        // Gi filen .jpg-endelse siden vi konverterer til JPEG
+        const base = originalFile.name.replace(/\.[^.]+$/, '');
+        compressedName = base + '_komprimert.jpg';
+
+        compressedEl.textContent = formatBytes(blob.size);
+        compressedEl.className = 'badge ' +
+          (blob.size <= MAX_BYTES ? 'bg-primary' : 'bg-warning text-dark') +
+          ' size-badge';
+
+        const reduction = ((1 - blob.size / originalFile.size) * 100).toFixed(1);
+        reductionEl.textContent = reduction + ' %';
+        reductionEl.className = 'badge ' +
+          (reduction > 0 ? 'bg-success' : 'bg-secondary') + ' size-badge';
+
+        // Oppdater forhåndsvisning til komprimert bilde
+        const url = URL.createObjectURL(blob);
+        previewImg.src = url;
+
+        downloadBtn.classList.remove('d-none');
+      } catch (err) {
+        console.error(err);
+        alert('Komprimering feilet: ' + err.message);
+        progressWrap.classList.add('d-none');
+      } finally {
+        compressBtn.disabled = false;
+      }
+    });
+
+    // ---------- Last ned ----------
+    downloadBtn.addEventListener('click', () => {
+      if (!compressedBlob) return;
+      const url = URL.createObjectURL(compressedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = compressedName || 'komprimert.jpg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    resetBtn.addEventListener('click', resetAll);
+  })();
+  </script>
+
+  <!-- Bootstrap JS (valgfritt, kun hvis du vil bruke komponenter som trenger det) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
